@@ -20,7 +20,13 @@
 # %%
 import os
 import json
+import sys
 from pathlib import Path
+
+REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from lab_utils import ensure_chat_template
 
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
@@ -32,7 +38,6 @@ else:
     BASE_MODEL = "unsloth/Qwen2.5-7B-bnb-4bit"
     MAX_LEN = 1024
 
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
 DPO_PATH = REPO_ROOT / "adapters" / "dpo"
 EVAL_OUT = REPO_ROOT / "data" / "eval"

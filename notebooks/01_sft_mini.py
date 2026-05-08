@@ -23,7 +23,13 @@
 
 # %%
 import os
+import sys
 from pathlib import Path
+
+REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from lab_utils import ensure_chat_template
 
 # Tier detection. Defaults to T4 if env not set.
@@ -49,7 +55,6 @@ USE_WANDB = bool(os.environ.get("WANDB_API_KEY"))
 REPORT_TO = "wandb" if USE_WANDB else "none"
 RUN_NAME = f"lab22-sft-{COMPUTE_TIER.lower()}"
 
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 ADAPTER_OUT = REPO_ROOT / "adapters" / "sft-mini"
 ADAPTER_OUT.mkdir(parents=True, exist_ok=True)
 
