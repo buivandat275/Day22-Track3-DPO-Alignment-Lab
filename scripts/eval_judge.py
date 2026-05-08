@@ -18,6 +18,7 @@ import json
 import os
 import random
 from pathlib import Path
+from lab_utils import ensure_chat_template
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -67,6 +68,7 @@ def generate_with_adapter(adapter_path: Path, prompts: list[dict], compute_tier:
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    ensure_chat_template(tokenizer)
 
     model = PeftModel.from_pretrained(model, str(adapter_path))
     FastLanguageModel.for_inference(model)

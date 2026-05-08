@@ -25,6 +25,7 @@
 # %%
 import os
 from pathlib import Path
+from lab_utils import ensure_chat_template
 
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
 
@@ -62,6 +63,7 @@ assert ADAPTER_DIR.exists(), f"NB1 must run first — {ADAPTER_DIR} missing"
 tokenizer = AutoTokenizer.from_pretrained(ADAPTER_DIR)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
+ensure_chat_template(tokenizer)
 print(f"Tokenizer: {tokenizer.__class__.__name__}  vocab={tokenizer.vocab_size:,}")
 
 # %% [markdown]

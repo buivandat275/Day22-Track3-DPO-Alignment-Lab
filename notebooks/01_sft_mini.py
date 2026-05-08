@@ -24,6 +24,7 @@
 # %%
 import os
 from pathlib import Path
+from lab_utils import ensure_chat_template
 
 # Tier detection. Defaults to T4 if env not set.
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
@@ -88,6 +89,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
     print("Set tokenizer.pad_token = eos_token")
+ensure_chat_template(tokenizer)
 
 # %%
 model = FastLanguageModel.get_peft_model(
