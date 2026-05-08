@@ -41,7 +41,7 @@ else:  # BIGGPU
     PER_DEVICE_BATCH = 2
     GRAD_ACCUM = 4
 
-SFT_DATASET = os.environ.get("SFT_DATASET", "5CD-AI/Vietnamese-alpaca-cleaned")
+SFT_DATASET = os.environ.get("SFT_DATASET", "5CD-AI/Vietnamese-Multi-turn-Chat-Alpaca")
 SFT_SLICE = 1000
 NUM_EPOCHS = 1
 USE_WANDB = bool(os.environ.get("WANDB_API_KEY"))
@@ -110,8 +110,10 @@ print(f"Trainable params: {sum(p.numel() for p in model.parameters() if p.requir
 # %% [markdown]
 # ## 2. Load + format VN Alpaca slice
 #
-# `5CD-AI/Vietnamese-alpaca-cleaned` is a 50k-row VN Alpaca translation. Lab 21
-# uses 1k slice for the demo run; we match that exactly so reward gap is comparable.
+# The original lab text referenced `5CD-AI/Vietnamese-alpaca-cleaned`, but that
+# dataset is no longer publicly accessible on the Hub. We default to the public
+# `5CD-AI/Vietnamese-Multi-turn-Chat-Alpaca` instead and keep the 1k slice so
+# the rest of the pipeline stays lightweight on T4.
 
 # %%
 from datasets import load_dataset
@@ -124,13 +126,29 @@ print(f"\nFirst row:\n{ds[0]}")
 # Alpaca → ChatML format (Qwen2.5's native template)
 def format_alpaca_to_chat(row):
     messages = []
-    if row.get("instruction"):
-        prompt = row["instruction"]
-        if row.get("input"):
-            prompt += "\n\n" + row["input"]
-        messages.append({"role": "user", "content": prompt})
-    if row.get("output"):
-        messages.append({"role": "assistant", "content": row["output"]})
+    if row.get("instruction") or row.get("output"):
+        if row.get("instruction"):
+            prompt = row["instruction"]
+            if row.get("input"):
+                prompt += "\n\n" + row["input"]
+            messages.append({"role": "user", "content": prompt})
+        if row.get("output"):
+            messages.append({"role": "assistant", "content": row["output"]})
+    elif row.get("conversations"):
+        role_map = {
+            "human": "user",
+            "user": "user",
+            "gpt": "assistant",
+            "assistant": "assistant",
+            "system": "system",
+        }
+        for turn in row["conversations"]:
+            role = role_map.get(turn.get("from", "").lower())
+            content = turn.get("value")
+            if role and content:
+                messages.append({"role": role, "content": content})
+    if not messages:
+        raise ValueError(f"Unsupported row format. Columns present: {list(row.keys())}")
     text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
     return {"text": text}
 
