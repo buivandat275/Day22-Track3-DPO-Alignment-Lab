@@ -37,7 +37,7 @@ GGUF_DIR = REPO_ROOT / "gguf"
 MERGED_PATH.mkdir(parents=True, exist_ok=True)
 GGUF_DIR.mkdir(parents=True, exist_ok=True)
 
-assert DPO_PATH.exists(), "NB3 must run first"
+assert (DPO_PATH / "adapter_config.json").exists(), f"NB3 must complete first; missing {DPO_PATH / 'adapter_config.json'}"
 
 print(f"COMPUTE_TIER:    {COMPUTE_TIER}")
 print(f"DPO adapter:     {DPO_PATH}")

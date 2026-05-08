@@ -43,7 +43,8 @@ DPO_PATH = REPO_ROOT / "adapters" / "dpo"
 EVAL_OUT = REPO_ROOT / "data" / "eval"
 EVAL_OUT.mkdir(parents=True, exist_ok=True)
 
-assert SFT_PATH.exists() and DPO_PATH.exists(), "NB1 + NB3 must run first"
+assert (SFT_PATH / "adapter_config.json").exists(), f"NB1 must run first; missing {SFT_PATH / 'adapter_config.json'}"
+assert (DPO_PATH / "adapter_config.json").exists(), f"NB3 must complete first; missing {DPO_PATH / 'adapter_config.json'}"
 
 EVAL_PROMPTS = [
     # 4 helpfulness — should reward DPO if it learned to be more helpful

@@ -70,6 +70,72 @@ import torch
 
 assert torch.cuda.is_available(), "DPO needs a CUDA GPU. See HARDWARE-GUIDE.md."
 
+
+def patch_xformers_attention_for_t4():
+    """Use PyTorch SDPA when xformers has no T4 backward kernel for GQA tensors."""
+    major, minor = torch.cuda.get_device_capability()
+    if major >= 8:
+        return
+
+    import torch.nn.functional as F
+
+    def sdpa_attention(query, key, value, attn_bias=None, p=0.0, scale=None, op=None, output_dtype=None):
+        original_shape = query.shape
+        if query.ndim == 5:
+            # xformers BMGHK -> PyTorch (B*G, H, M, K)
+            bsz, q_len, groups, heads, head_dim = query.shape
+            kv_len = key.shape[1]
+            query_4d = query.permute(0, 2, 3, 1, 4).reshape(bsz * groups, heads, q_len, head_dim)
+            key_4d = key.permute(0, 2, 3, 1, 4).reshape(bsz * groups, heads, kv_len, head_dim)
+            value_4d = value.permute(0, 2, 3, 1, 4).reshape(bsz * groups, heads, kv_len, head_dim)
+            out = F.scaled_dot_product_attention(
+                query_4d,
+                key_4d,
+                value_4d,
+                attn_mask=None,
+                dropout_p=p,
+                is_causal=attn_bias is not None,
+                scale=scale,
+            )
+            out = out.reshape(bsz, groups, heads, q_len, head_dim).permute(0, 3, 1, 2, 4)
+        elif query.ndim == 4:
+            # xformers BMHK -> PyTorch (B, H, M, K)
+            bsz, q_len, heads, head_dim = query.shape
+            kv_len = key.shape[1]
+            query_4d = query.permute(0, 2, 1, 3)
+            key_4d = key.permute(0, 2, 1, 3)
+            value_4d = value.permute(0, 2, 1, 3)
+            out = F.scaled_dot_product_attention(
+                query_4d,
+                key_4d,
+                value_4d,
+                attn_mask=None,
+                dropout_p=p,
+                is_causal=attn_bias is not None,
+                scale=scale,
+            ).permute(0, 2, 1, 3)
+            out = out.reshape(bsz, q_len, heads, head_dim)
+        else:
+            raise NotImplementedError(f"Unsupported attention rank for SDPA fallback: {query.ndim}")
+
+        if output_dtype is not None:
+            out = out.to(output_dtype)
+        return out.reshape(original_shape)
+
+    import xformers.ops
+
+    xformers.ops.memory_efficient_attention = sdpa_attention
+    if hasattr(xformers.ops, "fmha"):
+        xformers.ops.fmha.memory_efficient_attention = sdpa_attention
+    try:
+        import unsloth.utils.attention_dispatch as attention_dispatch
+
+        attention_dispatch.xformers_attention = sdpa_attention
+    except Exception:
+        pass
+
+    print(f"Patched xformers attention fallback for CUDA capability {major}.{minor} (T4-compatible SDPA).")
+
 # %% [markdown]
 # ## 1. Load policy + reference (the VRAM-doubling part)
 #
@@ -80,6 +146,8 @@ assert torch.cuda.is_available(), "DPO needs a CUDA GPU. See HARDWARE-GUIDE.md."
 # %%
 from unsloth import FastLanguageModel
 from peft import PeftModel
+
+patch_xformers_attention_for_t4()
 
 # Policy — gets new DPO LoRA adapter on top of SFT LoRA
 model, tokenizer = FastLanguageModel.from_pretrained(
