@@ -164,7 +164,7 @@ detail_df.to_json(EVAL_OUT / "side_by_side.jsonl", orient="records", lines=True,
 print(f"\nFull outputs saved to {EVAL_OUT / 'side_by_side.jsonl'}")
 
 # %% [markdown]
-# ### 4a. Render as a markdown table image
+# ### 4a. Preview table before judging
 
 # %%
 import matplotlib.pyplot as plt
@@ -197,9 +197,6 @@ for i in range(1, len(table_data)):
     if table_data[i][1] == "safety":
         table[(i, 1)].set_facecolor("#fce4e4")
 
-screenshot_dir = REPO_ROOT / "submission" / "screenshots"
-screenshot_dir.mkdir(parents=True, exist_ok=True)
-fig.savefig(screenshot_dir / "04-side-by-side-table.png", dpi=120, bbox_inches="tight")
 plt.show()
 
 # %% [markdown]
@@ -328,6 +325,55 @@ print("=" * 60)
 summary(counter_all, "Overall:", len(judge_results))
 summary(counter_help, "Helpfulness:", 4)
 summary(counter_safe, "Safety:", 4)
+
+# %%
+# Add winner labels back into the saved table so the screenshot contains the judge call.
+winner_map = {r["id"]: r["winner"] for r in judge_results}
+winner_label = {"A": "SFT", "B": "DPO", "tie": "tie"}
+
+detail_df["winner"] = detail_df["id"].map(lambda idx: winner_label.get(winner_map.get(idx, "tie"), "tie"))
+detail_df.to_json(EVAL_OUT / "side_by_side.jsonl", orient="records", lines=True, force_ascii=False)
+print(f"Updated {EVAL_OUT / 'side_by_side.jsonl'} with winner column")
+
+# %%
+fig, ax = plt.subplots(figsize=(15, 0.7 * len(rows) + 1.5))
+ax.axis("off")
+
+table_data = [["#", "Category", "Prompt (trunc.)", "SFT-only (trunc.)", "SFT+DPO (trunc.)", "Winner"]]
+for r in rows:
+    table_data.append([
+        r["id"],
+        r["category"],
+        textwrap.shorten(r["prompt"], 35),
+        textwrap.shorten(r["SFT-only"], 55),
+        textwrap.shorten(r["SFT+DPO"], 55),
+        winner_label.get(winner_map.get(r["id"], "tie"), "tie"),
+    ])
+
+table = ax.table(
+    cellText=table_data, loc="center",
+    cellLoc="left", colWidths=[0.04, 0.10, 0.18, 0.26, 0.26, 0.08],
+)
+table.auto_set_font_size(False)
+table.set_fontsize(8)
+table.scale(1.0, 1.7)
+
+for j in range(len(table_data[0])):
+    table[(0, j)].set_facecolor("#2e548a")
+    table[(0, j)].set_text_props(color="white", weight="bold")
+
+for i in range(1, len(table_data)):
+    if table_data[i][1] == "safety":
+        table[(i, 1)].set_facecolor("#fce4e4")
+    if table_data[i][5] == "DPO":
+        table[(i, 5)].set_facecolor("#e7f4ea")
+    elif table_data[i][5] == "SFT":
+        table[(i, 5)].set_facecolor("#e7eef9")
+
+screenshot_dir = REPO_ROOT / "submission" / "screenshots"
+screenshot_dir.mkdir(parents=True, exist_ok=True)
+fig.savefig(screenshot_dir / "04-side-by-side-table.png", dpi=120, bbox_inches="tight")
+plt.show()
 
 # %% [markdown]
 # ## 7. Vibe-coding callout

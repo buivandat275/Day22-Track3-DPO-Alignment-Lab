@@ -42,6 +42,9 @@ else:
 BETA = float(os.environ.get("DPO_BETA", "0.1"))
 LR = float(os.environ.get("DPO_LR", "5e-7"))
 EPOCHS = int(os.environ.get("DPO_EPOCHS", "1"))
+USE_WANDB = bool(os.environ.get("WANDB_API_KEY"))
+REPORT_TO = "wandb" if USE_WANDB else "none"
+RUN_NAME = f"lab22-dpo-b{BETA}-{COMPUTE_TIER.lower()}"
 
 REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
@@ -58,6 +61,7 @@ print(f"BASE_MODEL:      {BASE_MODEL}")
 print(f"DPO hyperparams: beta={BETA}  lr={LR}  epochs={EPOCHS}")
 print(f"max_length:      {MAX_LEN}  (prompt={MAX_PROMPT_LEN})")
 print(f"effective batch: {PER_DEVICE_BATCH * GRAD_ACCUM}")
+print(f"report_to:       {REPORT_TO}")
 print(f"SFT input:       {SFT_PATH}")
 print(f"output:          {DPO_OUT}")
 
@@ -141,7 +145,8 @@ dpo_config = DPOConfig(
     fp16=not torch.cuda.is_bf16_supported(),
     seed=42,
     loss_type="sigmoid",         # DPO standard (alternatives: ipo, hinge, kto)
-    report_to="none",
+    report_to=REPORT_TO,
+    run_name=RUN_NAME,
 )
 
 print(f"DPOConfig: beta={dpo_config.beta}  lr={dpo_config.learning_rate}  loss_type={dpo_config.loss_type}")

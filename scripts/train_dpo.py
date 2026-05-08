@@ -41,10 +41,14 @@ def main():
 
     output = Path(args.output_dir)
     output.mkdir(parents=True, exist_ok=True)
+    use_wandb = bool(os.environ.get("WANDB_API_KEY"))
+    report_to = "wandb" if use_wandb else "none"
+    run_name = f"lab22-dpo-b{args.beta}-{tier.lower()}"
 
     print(f"Tier:       {tier}")
     print(f"Base:       {base_model}")
     print(f"Beta / LR:  {args.beta} / {args.lr}")
+    print(f"Report to:  {report_to}")
     print(f"Output:     {output}")
 
     import torch
@@ -86,7 +90,8 @@ def main():
         fp16=not torch.cuda.is_bf16_supported(),
         seed=42,
         loss_type="sigmoid",
-        report_to="none",
+        report_to=report_to,
+        run_name=run_name,
     )
 
     pref = Dataset.from_parquet(args.pref_path)

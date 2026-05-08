@@ -44,6 +44,9 @@ else:  # BIGGPU
 SFT_DATASET = os.environ.get("SFT_DATASET", "5CD-AI/Vietnamese-alpaca-cleaned")
 SFT_SLICE = 1000
 NUM_EPOCHS = 1
+USE_WANDB = bool(os.environ.get("WANDB_API_KEY"))
+REPORT_TO = "wandb" if USE_WANDB else "none"
+RUN_NAME = f"lab22-sft-{COMPUTE_TIER.lower()}"
 
 REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 ADAPTER_OUT = REPO_ROOT / "adapters" / "sft-mini"
@@ -54,6 +57,7 @@ print(f"BASE_MODEL:      {BASE_MODEL}")
 print(f"SFT_DATASET:     {SFT_DATASET}  (slice: {SFT_SLICE})")
 print(f"max_seq_length:  {MAX_LEN}")
 print(f"effective batch: {PER_DEVICE_BATCH * GRAD_ACCUM}")
+print(f"report_to:       {REPORT_TO}")
 print(f"output:          {ADAPTER_OUT}")
 
 # %%
@@ -156,7 +160,8 @@ sft_config = SFTConfig(
     seed=42,
     max_seq_length=MAX_LEN,
     dataset_text_field="text",
-    report_to="none",
+    report_to=REPORT_TO,
+    run_name=RUN_NAME,
 )
 
 trainer = SFTTrainer(
