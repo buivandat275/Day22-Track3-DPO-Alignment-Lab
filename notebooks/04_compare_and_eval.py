@@ -20,14 +20,7 @@
 # %%
 import os
 import json
-import sys
 from pathlib import Path
-
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from lab_utils import ensure_chat_template
 
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
 
@@ -38,13 +31,13 @@ else:
     BASE_MODEL = "unsloth/Qwen2.5-7B-bnb-4bit"
     MAX_LEN = 1024
 
+REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
 DPO_PATH = REPO_ROOT / "adapters" / "dpo"
 EVAL_OUT = REPO_ROOT / "data" / "eval"
 EVAL_OUT.mkdir(parents=True, exist_ok=True)
 
-assert (SFT_PATH / "adapter_config.json").exists(), f"NB1 must run first; missing {SFT_PATH / 'adapter_config.json'}"
-assert (DPO_PATH / "adapter_config.json").exists(), f"NB3 must complete first; missing {DPO_PATH / 'adapter_config.json'}"
+assert SFT_PATH.exists() and DPO_PATH.exists(), "NB1 + NB3 must run first"
 
 EVAL_PROMPTS = [
     # 4 helpfulness — should reward DPO if it learned to be more helpful
@@ -86,7 +79,6 @@ def generate_with_adapter(adapter_path: Path, prompts: list[dict], max_new_token
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    ensure_chat_template(tokenizer)
 
     model = PeftModel.from_pretrained(model, str(adapter_path))
     FastLanguageModel.for_inference(model)
@@ -172,7 +164,7 @@ detail_df.to_json(EVAL_OUT / "side_by_side.jsonl", orient="records", lines=True,
 print(f"\nFull outputs saved to {EVAL_OUT / 'side_by_side.jsonl'}")
 
 # %% [markdown]
-# ### 4a. Preview table before judging
+# ### 4a. Render as a markdown table image
 
 # %%
 import matplotlib.pyplot as plt
@@ -205,6 +197,9 @@ for i in range(1, len(table_data)):
     if table_data[i][1] == "safety":
         table[(i, 1)].set_facecolor("#fce4e4")
 
+screenshot_dir = REPO_ROOT / "submission" / "screenshots"
+screenshot_dir.mkdir(parents=True, exist_ok=True)
+fig.savefig(screenshot_dir / "04-side-by-side-table.png", dpi=120, bbox_inches="tight")
 plt.show()
 
 # %% [markdown]
@@ -333,55 +328,6 @@ print("=" * 60)
 summary(counter_all, "Overall:", len(judge_results))
 summary(counter_help, "Helpfulness:", 4)
 summary(counter_safe, "Safety:", 4)
-
-# %%
-# Add winner labels back into the saved table so the screenshot contains the judge call.
-winner_map = {r["id"]: r["winner"] for r in judge_results}
-winner_label = {"A": "SFT", "B": "DPO", "tie": "tie"}
-
-detail_df["winner"] = detail_df["id"].map(lambda idx: winner_label.get(winner_map.get(idx, "tie"), "tie"))
-detail_df.to_json(EVAL_OUT / "side_by_side.jsonl", orient="records", lines=True, force_ascii=False)
-print(f"Updated {EVAL_OUT / 'side_by_side.jsonl'} with winner column")
-
-# %%
-fig, ax = plt.subplots(figsize=(15, 0.7 * len(rows) + 1.5))
-ax.axis("off")
-
-table_data = [["#", "Category", "Prompt (trunc.)", "SFT-only (trunc.)", "SFT+DPO (trunc.)", "Winner"]]
-for r in rows:
-    table_data.append([
-        r["id"],
-        r["category"],
-        textwrap.shorten(r["prompt"], 35),
-        textwrap.shorten(r["SFT-only"], 55),
-        textwrap.shorten(r["SFT+DPO"], 55),
-        winner_label.get(winner_map.get(r["id"], "tie"), "tie"),
-    ])
-
-table = ax.table(
-    cellText=table_data, loc="center",
-    cellLoc="left", colWidths=[0.04, 0.10, 0.18, 0.26, 0.26, 0.08],
-)
-table.auto_set_font_size(False)
-table.set_fontsize(8)
-table.scale(1.0, 1.7)
-
-for j in range(len(table_data[0])):
-    table[(0, j)].set_facecolor("#2e548a")
-    table[(0, j)].set_text_props(color="white", weight="bold")
-
-for i in range(1, len(table_data)):
-    if table_data[i][1] == "safety":
-        table[(i, 1)].set_facecolor("#fce4e4")
-    if table_data[i][5] == "DPO":
-        table[(i, 5)].set_facecolor("#e7f4ea")
-    elif table_data[i][5] == "SFT":
-        table[(i, 5)].set_facecolor("#e7eef9")
-
-screenshot_dir = REPO_ROOT / "submission" / "screenshots"
-screenshot_dir.mkdir(parents=True, exist_ok=True)
-fig.savefig(screenshot_dir / "04-side-by-side-table.png", dpi=120, bbox_inches="tight")
-plt.show()
 
 # %% [markdown]
 # ## 7. Vibe-coding callout

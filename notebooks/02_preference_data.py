@@ -24,14 +24,7 @@
 
 # %%
 import os
-import sys
 from pathlib import Path
-
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from lab_utils import ensure_chat_template
 
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
 
@@ -48,6 +41,7 @@ PREF_DATASET = os.environ.get(
     "PREF_DATASET", "argilla/ultrafeedback-binarized-preferences-cleaned"
 )
 
+REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 ADAPTER_DIR = REPO_ROOT / "adapters" / "sft-mini"
 PREF_OUT = REPO_ROOT / "data" / "pref"
 PREF_OUT.mkdir(parents=True, exist_ok=True)
@@ -68,7 +62,6 @@ assert ADAPTER_DIR.exists(), f"NB1 must run first — {ADAPTER_DIR} missing"
 tokenizer = AutoTokenizer.from_pretrained(ADAPTER_DIR)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
-ensure_chat_template(tokenizer)
 print(f"Tokenizer: {tokenizer.__class__.__name__}  vocab={tokenizer.vocab_size:,}")
 
 # %% [markdown]

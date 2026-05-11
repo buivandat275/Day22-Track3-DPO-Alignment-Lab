@@ -17,7 +17,6 @@ from pathlib import Path
 import numpy as np
 from datasets import load_dataset
 from transformers import AutoTokenizer
-from lab_utils import ensure_chat_template
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -52,7 +51,6 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    ensure_chat_template(tokenizer)
 
     def fmt(row):
         prompt_msgs = [{"role": "user", "content": row["prompt"]}]

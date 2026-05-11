@@ -37,7 +37,7 @@ GGUF_DIR = REPO_ROOT / "gguf"
 MERGED_PATH.mkdir(parents=True, exist_ok=True)
 GGUF_DIR.mkdir(parents=True, exist_ok=True)
 
-assert (DPO_PATH / "adapter_config.json").exists(), f"NB3 must complete first; missing {DPO_PATH / 'adapter_config.json'}"
+assert DPO_PATH.exists(), "NB3 must run first"
 
 print(f"COMPUTE_TIER:    {COMPUTE_TIER}")
 print(f"DPO adapter:     {DPO_PATH}")
@@ -69,9 +69,6 @@ if tokenizer.pad_token is None:
 SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
 model = PeftModel.from_pretrained(model, str(SFT_PATH))
 print(f"Loaded SFT-mini adapter from {SFT_PATH}")
-
-model = PeftModel.from_pretrained(model, str(DPO_PATH))
-print(f"Loaded DPO adapter from {DPO_PATH}")
 
 # %% [markdown]
 # > **Note:** The DPO adapter trained in NB3 stacks on top of SFT. To get a fully

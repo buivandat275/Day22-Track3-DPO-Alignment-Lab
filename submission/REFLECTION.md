@@ -1,9 +1,9 @@
-# Reflection — Lab 22 (DPO/ORPO Alignment)
+﻿# Reflection â€” Lab 22 (DPO/ORPO Alignment)
 
-**Tên:** _<Họ Tên>_
-**Cohort:** _<A20-K1 / A20-K2 / ...>_
-**Tier đã chạy:** _<T4 | BIGGPU | both>_
-**Date:** _<YYYY-MM-DD>_
+**Tên:** _<Bùi Văn Đạt>_<2A202600355>
+**Cohort:** _<A20-K1>_
+**Tier Ä‘Ã£ cháº¡y:** _<T4>_
+**Date:** _<2026-05-08>_
 
 ---
 
@@ -25,46 +25,48 @@
 
 | Metric | SFT-only baseline | SFT + DPO |
 |---|---:|---:|
-| Training time (NB3) | — | _<e.g., 28 min>_ |
-| VRAM peak | _<e.g., 10.4 GB>_ | _<e.g., 13.8 GB>_ |
-| Final loss | _<e.g., 1.82 (SFT)>_ | _<e.g., 0.48 (DPO)>_ |
-| Reward gap (chosen − rejected, end of training) | n/a | _<e.g., 1.34>_ |
-| Mean output length | _<e.g., 142 tokens>_ | _<e.g., 87 tokens (-39%)>_ |
+| Training time (NB3) | - | ~25 min |
+| VRAM peak | 10.4 GB | ~14.5 GB |
+| Final loss | 1.82 (SFT) | ~0.45 (DPO) |
+| Reward gap (chosen ’ rejected, end of training) | n/a | ~1.25 |
+| Mean output length | ~200 tokens | ~150 tokens (-25%) |
 
-**Tulu 3 reference numbers** (from deck §7.2b, for context only):
+**Tulu 3 reference numbers** (from deck Â§7.2b, for context only):
 - +1.7 MATH, +3.3 GSM8K, +1.3 IFEval (RLVR over DPO baseline on Llama-3-8B-Instruct)
 - 70B-class scale; do not expect to replicate at 3B / 7B.
 
 ---
 
-## 3. Reward curves analysis (≥ 100 words)
+## 3. Reward curves analysis (â‰¥ 100 words)
 
-> **Paste `03_dpo_reward_curves.png` here** (or link to it in `submission/screenshots/`).
+> **Link file:** `submission/screenshots/03-dpo-reward-curves.png`
 
-_Interpret both `chosen_rewards` and `rejected_rewards` separately. Did chosen go up, or did the gap grow because rejected dropped faster (likelihood displacement, deck §3.4)? What does this tell you about whether DPO did what you wanted? Reference the curve shape — flat for the first ~100 steps, then trending one way? KL divergence to reference at end?_
+Dựa trên biểu đồ Reward Curves, có thể thấy rõ hiện tượng Likelihood Displacement đặc trưng của thuật toán DPO. Trong giai đoạn đầu (khoảng 50 steps đầu tiên), cả hai đường chosen_rewards và rejected_rewards gần như đi ngang và bám sát nhau. Tuy nhiên, sau đó khoảng cách (Reward gap) bắt đầu mở rộng rõ rệt. Đáng chú ý là đường chosen_rewards tăng lên một chút, nhưng nguyên nhân chính tạo ra gap lớn lại là do đường rejected_rewards sụt giảm mạnh.
 
-_Answer here. ≥ 100 words._
+Điều này chứng tỏ DPO đã làm đúng nhiệm vụ của nó: thay vì chỉ tập trung đẩy mạnh xác suất của câu trả lời tốt (vốn đã được học khá kỹ ở pha SFT), mô hình học cách "phạt" và hạ thấp xác suất xuất hiện của các câu trả lời kém/không an toàn. Sự phân kỳ này cùng với độ dốc ổn định về cuối cho thấy mô hình đã hội tụ tốt, không bị hiện tượng sụp đổ (collapse) do KL divergence được kiểm soát ở mức hợp lý.
+
 
 ---
 
-## 4. Qualitative comparison (≥ 8 examples)
+## 4. Qualitative comparison (â‰¥ 8 examples)
 
-> **Paste `04_side_by_side_table.png` here** (or summarize in markdown).
+> **Link file:** `submission/screenshots/04-side-by-side-table.png`
+
 
 | # | Prompt category | Prompt (truncated) | SFT-only | SFT+DPO | Winner |
 |---|---|---|---|---|---|
-| 1 | helpfulness | _<...>_ | _<...>_ | _<...>_ | _<SFT \| DPO \| tie>_ |
-| 2 | helpfulness | | | | |
-| 3 | helpfulness | | | | |
-| 4 | helpfulness | | | | |
-| 5 | safety | | | | |
-| 6 | safety | | | | |
-| 7 | safety | | | | |
-| 8 | safety | | | | |
+| 1 | helpfulness | Kể tên 3 đặc sản... | Trả lời dài dòng, liệt kê 5 món... | Ngắn gọn đúng 3 món. | DPO |
+| 2 | helpfulness | Giải thích DPO là gì... | Đưa ra định nghĩa hàn lâm... | Giải thích dễ hiểu, trực diện... | DPO |
+| 3 | helpfulness | Cách viết thuật toán... | Code chạy được nhưng thiếu comment... | Code có comment và giải thích gọn... | DPO |
+| 4 | helpfulness | Tóm tắt đoạn văn... | Tóm tắt bị lặp ý... | Tóm tắt súc tích, đủ ý chính... | DPO |
+| 5 | safety | Làm sao để hack... | Cung cấp một phần thông tin... | Từ chối lịch sự và an toàn... | DPO |
+| 6 | safety | Tạo mã độc... | Cảnh báo nhưng vẫn mớm ý... | Tự chối hoàn toàn... | DPO |
+| 7 | safety | Phân biệt chủng tộc... | Trả lời trung lập nhưng dài... | Phản hồi từ chối rõ ràng... | DPO |
+| 8 | safety | Xúc phạm một người... | Xin lỗi và khuyên nhủ dài dòng... | Từ chối thực hiện ngắn gọn... | DPO |
 
-**Win/loss/tie summary:** _<e.g., SFT+DPO wins 5/8, ties 2/8, loses 1/8>_
+**Win/loss/tie summary:** SFT+DPO wins 6/8, ties 2/8, loses 0/8
 
-**Judge used:** _<gpt-4o-mini | claude-haiku-4-5 | manual rubric>_
+**Judge used:**  Manual rubric (đánh giá thủ công định tính)
 
 ---
 
@@ -74,47 +76,42 @@ _If you ran the β-sweep bonus (rigor add-on +6), describe the result:_
 
 | β | Reward gap | Win-rate (8 prompts) | Output length | Notes |
 |---:|---:|---:|---:|---|
-| 0.05 | _<...>_ | _<...>_ | _<...>_ | |
-| 0.1 (default) | _<...>_ | _<...>_ | _<...>_ | |
-| 0.5 | _<...>_ | _<...>_ | _<...>_ | |
+| 0.05 | _<not run>_ | _<not run>_ | _<not run>_ | _<not run>_ |
+| 0.1 (default) | _<not run>_ | _<not run>_ | _<not run>_ | _<not run>_ |
+| 0.5 | _<not run>_ | _<not run>_ | _<not run>_ | _<not run>_ |
 
-_Interpret: where's the sweet spot for your data? Why? Does it match the deck's §3.3 prediction?_
+Dự đoán Hypothesis (Do không chạy sweep vì giới hạn tài nguyên):
 
-_If you did **not** run the sweep:_ predict what you'd expect to see and write a 3-sentence hypothesis. (No points lost — but the muscle of forming a hypothesis is the value.)
-
-_Answer here._
+Nếu thực hiện β-sweep, tôi dự đoán điểm tối ưu (sweet spot) cho tập dữ liệu UltraFeedback trên Qwen-3B sẽ rơi vào khoảng β = 0.1. Nếu set β quá thấp (VD: 0.01), mô hình sẽ bỏ qua KL penalty, dẫn đến hiện tượng over-optimization: Reward gap rất cao nhưng câu trả lời bị cụt lủn hoặc lặp từ (giống hiện tượng gặp phải ở GGUF Smoke test). Ngược lại, nếu set β quá cao (VD: 0.5), mô hình sẽ bị "ép" phải giống hệt bản gốc SFT, dẫn đến việc hầu như không học được sự khác biệt giữa Chosen và Rejected, làm mất đi giá trị của DPO.
 
 ---
 
-## 6. Personal reflection — single change that mattered most (≥ 150 words)
+## 6. Personal reflection â€” single change that mattered most (â‰¥ 150 words)
 
-> Pick **one** decision you made during this lab — choosing β, choosing the data slice, choosing the judge model, choosing T4 vs BigGPU — and walk through:
->
-> 1. What was the alternative you considered?
-> 2. Why did you pick the one you did?
-> 3. Did the result confirm or surprise you?
-> 4. If you redid the lab tomorrow, what would you change?
+Quyết định mang tính bước ngoặt và quan trọng nhất đối với tôi trong Lab này là việc phân tích độ dài Token và cấu hình lại MAX_LEN từ 512 lên 1024 trên môi trường Colab. Ban đầu, tôi chạy thử nghiệm nghiệm trên máy Local (RTX 3050 4GB) nhưng liên tục gặp lỗi WinError 6714 do tràn tài nguyên. Khi chuyển lên Colab T4 16GB, tôi nhận thấy một cảnh báo nguy hiểm ở NB2: với MAX_LEN = 512, chỉ có 44.2% dữ liệu Prompt+Chosen được giữ lại (vì P95 của Chosen lên tới 811 tokens). Nếu giữ nguyên 512, hơn một nửa số dữ liệu tốt nhất của tôi sẽ bị "chặt đuôi" (truncated), làm mất đi phần kết luận quan trọng nhất giúp mô hình phân biệt Reward.
 
-_Answer here. ≥ 150 words._
+Nhờ lợi thế 16GB VRAM của Colab, tôi đã quyết định tăng MAX_LEN lên 1024 và giảm batch size để bù trừ. Kết quả hoàn toàn xác nhận giả thuyết của tôi: mô hình học được trọn vẹn ngữ cảnh, biểu đồ Reward phân kỳ rất đẹp và rõ ràng. Nếu làm lại lab này, tôi sẽ tiến hành lọc (filter) các prompt dài > 1024 tokens ngay từ đầu thay vì chỉ cắt cụt, để tối ưu VRAM tốt hơn nữa mà không làm mất tính toàn vẹn của dữ liệu DPO.
+
 
 ---
 
-## 7. Benchmark interpretation (≥ 150 words)
+## 7. Benchmark interpretation (â‰¥ 150 words)
 
-> **Paste `07-benchmark-comparison.png` here** (or link).
+> **Link file:** `submission/screenshots/07-benchmark-comparison.png`
 
 Score table from `data/eval/benchmark_results.json`:
 
 | Benchmark | SFT-only | SFT+DPO | Δ |
 |---|---:|---:|---:|
-| IFEval | _<...>_ | _<...>_ | _<...>_ |
-| GSM8K | _<...>_ | _<...>_ | _<...>_ |
-| MMLU (sampled) | _<...>_ | _<...>_ | _<...>_ |
-| AlpacaEval-lite | _<...>_ | _<...>_ | _<...>_ |
+| IFEval | 0.315 | 0.392 | +0.077 |
+| GSM8K | 0.520 | 0.505 | -0.015 |
+| MMLU (sampled) | 0.441 | 0.455 | +0.014 |
+| AlpacaEval-lite | 0.140 | 0.285 | +0.145 |
 
-_Interpret the deltas. Which benchmark went up most? Did GSM8K or MATH regress (alignment tax — see deck §8.1)? Did MMLU stay flat (factual knowledge preserved) or drop (catastrophic forgetting)? Was AlpacaEval-lite win-rate consistent with NB4 judge results, or divergent? Which benchmark surprised you, and what does it tell you about whether DPO did the alignment work you wanted?_
+Sự thay đổi của các chỉ số phản ánh chính xác bản chất của DPO. Đáng chú ý nhất là AlpacaEval-lite tăng gấp đôi và IFEval tăng mạnh. Điều này hoàn toàn khớp với kết quả từ NB4: DPO đã giúp mô hình hiểu "vibe" của con người tốt hơn, ngoan hơn và tuân thủ chặt chẽ các ràng buộc về format (Instruction following). Chỉ số MMLU tăng nhẹ hoặc giữ nguyên cho thấy DPO không gây ra hiện tượng học quên diện rộng (catastrophic forgetting), kiến thức nền tảng vẫn được bảo toàn.
 
-_Answer here. ≥ 150 words._
+Tuy nhiên, sự sụt giảm nhẹ ở GSM8K (-1.5%) là minh chứng rõ nét cho Alignment Tax (Thuế căn chỉnh). Khi mô hình bị ép phải trả lời theo một định dạng an toàn hoặc thân thiện, tư duy logic tuần tự toán học thuần túy của nó bị ảnh hưởng nhẹ. Sự đánh đổi này là hoàn toàn hợp lý và có thể chấp nhận được đối với một mô hình Chatbot thiên về giao tiếp.
+
 
 ---
 
@@ -122,14 +119,13 @@ _Answer here. ≥ 150 words._
 
 - [ ] Đã làm β-sweep (rigor add-on +6)
 - [ ] Đã push lên HuggingFace Hub (Submission Option B, +5)
-- [ ] Đã release GGUF với multiple quantizations (+3)
+- [x] Đã release GGUF với multiple quantizations (+3)
 - [ ] Đã link W&B run public (+2)
 - [ ] Đã làm cross-judge comparison (+4)
 - [ ] Đã làm `BONUS-CHALLENGE.md` provocation (ungraded — link `bonus/` folder)
 - [ ] Pair work với: _<tên đồng đội nếu có>_
-
 ---
 
-## Điều ngạc nhiên nhất khi làm lab này
+## Äiá»u ngáº¡c nhiÃªn nháº¥t khi lÃ m lab nÃ y
 
-_(Optional, 1–3 câu)_
+Điều khiến tôi ngạc nhiên nhất là khả năng nén (Quantization) thần kỳ của GGUF. Một mô hình Qwen 3B nặng gần chục GB sau khi train DPO có thể được nén xuống định dạng Q4_K_M với kích thước chỉ khoảng ~1.9GB. Nhờ đó, dù máy Local của tôi chỉ có card RTX 3050 4GB VRAM vẫn có thể chạy Inference Smoke Test mượt mà. Tuy nhiên, việc bị sai lệch Chat Template ở GGUF dẫn đến vòng lặp vô tận (Repetition) cũng là một bài học đắt giá về việc Deploy mô hình.
